@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { CookingResult } from '../../types/cooking';
-import { AlertTriangle, Sparkles, ChefHat, Bot, Zap, TriangleAlert, Wand2, RotateCcw, Clock, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, Sparkles, ChefHat, Bot, TriangleAlert, Clock, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTargetDeviationPercent } from '../../utils/cookingValidation';
 import { i18n } from '../../i18n/ru';
@@ -23,7 +23,6 @@ export const CookingResultCard: React.FC<CookingResultCardProps> = ({
   isRefining,
   isAccepted 
 }) => {
-  const [refineMessage, setRefineMessage] = React.useState('');
   const hasBigDeviations = result.portions.some(p => getTargetDeviationPercent(p.targetKcal, p.actualKcal) > 15);
   const hasInventoryIssues = result.inventoryAfter.some(m => m.remainingAmount < 0);
 
@@ -256,102 +255,6 @@ export const CookingResultCard: React.FC<CookingResultCardProps> = ({
               </div>
             )}
           </div>
-        </motion.div>
-      )}
-
-      {/* AI Refinement Chat */}
-      {!isAccepted && onRefine && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-natural-muted rounded-[40px] p-8 space-y-6 border border-stone-100 shadow-sm"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-stone-500">
-              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                <Wand2 size={14} className="text-natural-primary" />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest">{i18n.cooking.aiChef}</span>
-            </div>
-            {result.revisionHistory && result.revisionHistory.length > 0 && (
-               <div className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
-                 {i18n.cooking.revisionHistory}: {result.revisionHistory.length}
-               </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <textarea
-              value={refineMessage}
-              onChange={(e) => setRefineMessage(e.target.value)}
-              placeholder={i18n.cooking.refinePrompt}
-              rows={3}
-              className="w-full bg-white border border-stone-100 rounded-3xl p-5 pr-14 text-sm font-medium focus:ring-4 focus:ring-natural-primary/5 outline-none resize-none shadow-inner"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (refineMessage.trim() && !isRefining) {
-                    onRefine(refineMessage);
-                    setRefineMessage('');
-                  }
-                }
-              }}
-            />
-            <button
-              disabled={!refineMessage.trim() || isRefining}
-              onClick={() => {
-                onRefine(refineMessage);
-                setRefineMessage('');
-              }}
-              className={`absolute right-3 bottom-3 p-3 rounded-2xl transition-all ${
-                !refineMessage.trim() || isRefining
-                  ? 'text-stone-300'
-                  : 'bg-natural-primary text-white shadow-lg shadow-natural-primary/20 hover:scale-105 active:scale-95'
-              }`}
-            >
-              {isRefining ? <RotateCcw size={20} className="animate-spin" /> : <Wand2 size={20} />}
-            </button>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: i18n.cooking.quickRefine.removeProduct, icon: '🚫' },
-              { label: i18n.cooking.quickRefine.simpler, icon: '✨' },
-              { label: i18n.cooking.quickRefine.moreProtein, icon: '💪' },
-              { label: i18n.cooking.quickRefine.morePotato, icon: '🥔' },
-              { label: i18n.cooking.quickRefine.noDairy, icon: '🥛' },
-              { label: i18n.cooking.quickRefine.other, icon: '🔄' },
-            ].map((action, i) => (
-              <button
-                key={i}
-                disabled={isRefining}
-                onClick={() => onRefine(action.label)}
-                className="px-4 py-2 bg-white text-[10px] font-black uppercase text-stone-500 rounded-full border border-stone-100 hover:border-natural-primary/30 hover:text-natural-primary transition-all shadow-sm active:scale-95 disabled:opacity-50"
-              >
-                <span className="mr-1.5">{action.icon}</span>
-                {action.label}
-              </button>
-            ))}
-          </div>
-
-          {isRefining && (
-            <div className="flex flex-col items-center space-y-2 pt-2">
-              <div className="flex space-x-1">
-                {[1, 2, 3].map(i => (
-                  <motion.div
-                    key={i}
-                    animate={{ scale: [1, 1.5, 1] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.2 }}
-                    className="w-1.5 h-1.5 rounded-full bg-natural-primary"
-                  />
-                ))}
-              </div>
-              <p className="text-[9px] font-black text-natural-primary uppercase tracking-widest">
-                {i18n.cooking.refining}
-              </p>
-            </div>
-          )}
         </motion.div>
       )}
 

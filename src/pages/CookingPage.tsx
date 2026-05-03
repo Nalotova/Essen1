@@ -12,8 +12,6 @@ import { useApp } from '../contexts/AppContext';
 import { MealType, CookingMode, CookingResult, TargetStrategy, GenerationMode } from '../types/cooking';
 import { cookingService } from '../services/cookingService';
 import { aiCookingService } from '../services/aiCookingService';
-import { cookingRevisionService } from '../services/cookingRevisionService';
-
 import { MealTypeSelector } from '../components/cooking/MealTypeSelector';
 import { ParticipantSelector } from '../components/cooking/ParticipantSelector';
 import { CookingModeSelector } from '../components/cooking/CookingModeSelector';
@@ -25,6 +23,8 @@ import { TotalIngredientsTable } from '../components/cooking/TotalIngredientsTab
 import { PortionsByPersonTable } from '../components/cooking/PortionsByPersonTable';
 import { InventoryAfterTable } from '../components/cooking/InventoryAfterTable';
 import { DiagnosticsPanel } from '../components/cooking/DiagnosticsPanel';
+import { ChefChat } from '../components/chef/ChefChat';
+import { ProposedRevisionCard } from '../components/chef/ProposedRevisionCard';
 import { QuickSnackForm } from '../components/foodLog/QuickSnackForm';
 import { DailySummaryCard } from '../components/foodLog/DailySummaryCard';
 import { useFoodLog } from '../hooks/useFoodLog';
@@ -34,6 +34,9 @@ import { scoreMealVariety } from '../utils/mealSuitability';
 import { ShieldAlert, Info, FlaskConical, Trash2 } from 'lucide-react';
 import { i18n } from '../i18n/ru';
 import { cookingHistoryService } from '../services/cookingHistoryService';
+
+import { ChefChatMessage, ChefChatResponse } from '../types/chefChat';
+import { chefChatService } from '../services/chefChatService';
 
 export const CookingPage: React.FC = () => {
   const { activeHousehold } = useApp();
@@ -62,6 +65,11 @@ export const CookingPage: React.FC = () => {
   const [isAccepted, setIsAccepted] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
+  const [chatHistory, setChatHistory] = useState<ChefChatMessage[]>([]);
+  const [pendingRevision, setPendingRevision] = useState<{
+    proposedResult: CookingResult;
+    message: string;
+  } | null>(null);
 
   const isDev = true; 
 
@@ -137,6 +145,8 @@ export const CookingPage: React.FC = () => {
       setIsGenerating(true);
       setError(null);
       setIsAccepted(false);
+      setChatHistory([]);
+      setPendingRevision(null);
 
       const requestParams = {
         mealType,
@@ -263,48 +273,93 @@ export const CookingPage: React.FC = () => {
     alert('Ручное редактирование будет доступно в следующих обновлениях. Попробуйте уточнить запрос через чат ниже.');
   };
 
-  const handleRefine = async (message: string) => {
-    if (!result || !message.trim() || isRefining) return;
-    if (isAccepted) return;
+  const handleSendMessage = async (message: string) => {
+    if (!result || !message.trim() || isRefining || isAccepted) return;
+
+    // 1. Add user message
+    const userMsg: ChefChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: message,
+      createdAt: new Date().toISOString()
+    };
+    setChatHistory(prev => [...prev, userMsg]);
 
     try {
       setIsRefining(true);
-      setError(null);
-
-      const refinedResult = await cookingRevisionService.reviseCookingResultWithAi({
+      
+      const response: ChefChatResponse = await chefChatService.sendChefChatMessage({
+        message,
+        chatHistory,
         currentResult: result,
-        userMessage: message,
         profiles,
         foodItems: items,
         foodLogEntries: entries
       });
 
-      const report = validateCookingResult(refinedResult, items, profiles);
-      refinedResult.validationReport = report;
+      // 2. Add assistant message
+      const assistantMsg: ChefChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: response.message,
+        createdAt: new Date().toISOString()
+      };
+      setChatHistory(prev => [...prev, assistantMsg]);
 
-      // Variety Scoring for refined result
-      const recentMeals = entries
-        .filter(e => e.type === 'planned_meal')
-        .slice(-5)
-        .map(e => ({
-          mealName: e.foodName,
-          mealType: e.mealType as MealType,
-          mainIngredients: []
-        }));
-      
-      const varietyReport = scoreMealVariety(refinedResult, recentMeals);
-      if (varietyReport.warnings.length > 0) {
-        refinedResult.warnings = [...(refinedResult.warnings || []), ...varietyReport.warnings];
+      if (response.status === 'revision' && response.proposedResult) {
+        setPendingRevision({
+          proposedResult: response.proposedResult,
+          message: response.message
+        });
       }
 
-      setResult(refinedResult);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : i18n.common.error);
+      const errMsg: ChefChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: i18n.common.error,
+        createdAt: new Date().toISOString()
+      };
+      setChatHistory(prev => [...prev, errMsg]);
     } finally {
       setIsRefining(false);
     }
+  };
+
+  const handleAcceptRevision = () => {
+    if (!pendingRevision) return;
+    
+    // Validate proposed result
+    const report = validateCookingResult(pendingRevision.proposedResult, items, profiles);
+    if (!report.isValid) {
+      alert(`Новый вариант содержит ошибки: ${report.generalWarnings.join(', ')}`);
+      return;
+    }
+
+    setResult(pendingRevision.proposedResult);
+    setPendingRevision(null);
+    
+    // Add system message to chat
+    const sysMsg: ChefChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: i18n.cooking.chefChat.changesApplied,
+      createdAt: new Date().toISOString()
+    };
+    setChatHistory(prev => [...prev, sysMsg]);
+  };
+
+  const handleRejectRevision = () => {
+    setPendingRevision(null);
+    // Add system message to chat
+    const sysMsg: ChefChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: i18n.cooking.chefChat.stayedWithOriginal,
+      createdAt: new Date().toISOString()
+    };
+    setChatHistory(prev => [...prev, sysMsg]);
   };
 
   if (!result) {
@@ -569,13 +624,38 @@ export const CookingPage: React.FC = () => {
       </div>
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {pendingRevision && (
+          <ProposedRevisionCard 
+            proposedResult={pendingRevision.proposedResult}
+            message={pendingRevision.message}
+            onAccept={handleAcceptRevision}
+            onReject={handleRejectRevision}
+          />
+        )}
+
         <CookingResultCard 
           result={result} 
-          onRefine={handleRefine}
+          onRefine={handleSendMessage}
           isRefining={isRefining}
           isAccepted={isAccepted}
         />
         
+        {!isAccepted && (
+          <div className="space-y-2">
+            <ChefChat 
+              history={chatHistory}
+              onSendMessage={handleSendMessage}
+              isLoading={isRefining}
+            />
+            {pendingRevision && (
+              <p className="text-[10px] font-bold text-amber-500 bg-amber-50 p-3 rounded-2xl border border-amber-100 flex items-center gap-2">
+                <Info size={14} />
+                {i18n.cooking.chefChat.pendingRevisionHinter}
+              </p>
+            )}
+          </div>
+        )}
+
         <DiagnosticsPanel result={result} />
         <TotalIngredientsTable ingredients={result.totalIngredients} />
         <PortionsByPersonTable portions={result.portions} />
