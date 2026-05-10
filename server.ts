@@ -20,8 +20,13 @@ async function startServer() {
     const { prompt, images, systemInstruction, responseMimeType, modelName } = req.body;
     
     // Check multiple possible env vars
-    let apiKey = process.env.GEMINI_API_KEY;
-    let selectedKeySource = "GEMINI_API_KEY";
+    let apiKey = process.env.GEMINI_API_KEY2;
+    let selectedKeySource = "GEMINI_API_KEY2";
+
+    if (!apiKey) {
+      apiKey = process.env.GEMINI_API_KEY;
+      selectedKeySource = "GEMINI_API_KEY";
+    }
     
     if (!apiKey) {
       apiKey = process.env.API_KEY;
@@ -36,13 +41,14 @@ async function startServer() {
       selectedKeySource = "GOOGLE_GENAI_API_KEY";
     }
 
+    // Ignore placeholder values
+    if (apiKey === "AI Studio Free Tier") {
+      apiKey = undefined;
+    }
+
     if (process.env.NODE_ENV !== "production") {
       console.log("AI endpoint called");
       console.log("Selected API key source:", selectedKeySource);
-      console.log("Has GEMINI_API_KEY:", Boolean(process.env.GEMINI_API_KEY));
-      console.log("Has API_KEY:", Boolean(process.env.API_KEY));
-      console.log("Has GOOGLE_API_KEY:", Boolean(process.env.GOOGLE_API_KEY));
-      console.log("Has GOOGLE_GENAI_API_KEY:", Boolean(process.env.GOOGLE_GENAI_API_KEY));
     }
 
     if (!apiKey) {
