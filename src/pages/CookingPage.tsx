@@ -726,7 +726,7 @@ export const CookingPage: React.FC = () => {
               </div>
             )}
 
-            <DiagnosticsPanel result={result} />
+            {isDev && <DiagnosticsPanel result={result} />}
             <TotalIngredientsTable ingredients={result.totalIngredients} />
             <PortionsByPersonTable portions={result.portions} />
             <InventoryAfterTable movements={result.inventoryAfter} />

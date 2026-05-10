@@ -17,8 +17,6 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   app.post("/api/ai", async (req, res) => {
-    console.log("AI endpoint called");
-    console.log("Has GEMINI_API_KEY:", Boolean(process.env.GEMINI_API_KEY));
     const { prompt, images, systemInstruction, responseMimeType, modelName } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
