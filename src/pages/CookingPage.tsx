@@ -257,30 +257,50 @@ export const CookingPage: React.FC = () => {
   };
 
   const handleAccept = async (bypassValidation = false) => {
-    if (!result || isAccepted || !permissions.canEdit) return;
+    console.log("HandleAccept called", { resultId: result?.id, isAccepted, canEdit: permissions.canEdit });
+    if (!result) {
+      showToast('Результат отсутствует', 'error');
+      return;
+    }
+    if (isAccepted) {
+      showToast('Уже принято', 'warning');
+      return;
+    }
+    if (!permissions.canEdit) {
+      showToast('Нет прав на редактирование', 'error');
+      console.log("HandleAccept blocked: No edit permission");
+      return;
+    }
     
     const report = result.validationReport || validateCookingResult(result, items, profiles);
+    console.log("Validation report", report);
     
     if (!bypassValidation && !report.isValid) {
+      console.log("Validation failed, showing modal");
       setShowValidationModal(true);
       return;
     }
 
     if (report.inventoryWarnings.length > 0 && !bypassValidation) {
+       console.log("Inventory warnings, showing modal");
        // Cannot bypass inventory warnings
        setShowValidationModal(true);
        return;
     }
     
     try {
+      console.log("Attempting to accept and write off ingredients:", result.inventoryAfter.length);
       // 1. Write off ingredients
       for (const move of result.inventoryAfter) {
+        console.log(`Writing off ${move.foodItemId} (${move.foodName}): ${move.usedAmount} (remaining: ${move.remainingAmount})`);
         await setAmount(move.foodItemId, move.remainingAmount);
       }
+      console.log("Ingredients written off successfully");
 
       // 2. Add to food log for each participant
       for (const portion of result.portions) {
         const totalGrams = portion.items.reduce((sum, item) => sum + item.grams, 0);
+        console.log(`Adding to food log for ${portion.profileName}`);
         await addEntry({
           profileId: portion.profileId,
           profileName: portion.profileName,
@@ -324,14 +344,19 @@ export const CookingPage: React.FC = () => {
           }
         });
       }
+      console.log("Added to food log successfully");
 
       // 3. Save to History
+      console.log("Saving to history...");
       await cookingHistoryService.saveResult(result, householdId);
+      console.log("Saved to history successfully");
 
       setIsAccepted(true);
       setShowValidationModal(false);
       showToast(i18n.cooking.accepted, 'success');
+      console.log("HandleAccept finished successfully");
     } catch (err) {
+      console.error("Error in HandleAccept:", err);
       showToast(i18n.common.error, 'error');
     }
   };

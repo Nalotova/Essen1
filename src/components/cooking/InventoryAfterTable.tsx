@@ -30,7 +30,9 @@ export const InventoryAfterTable: React.FC<InventoryAfterTableProps> = ({ moveme
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-50">
-              {movements.map((move) => (
+              {movements
+                .filter((move) => move.usedAmount > 0)
+                .map((move) => (
                 <tr key={move.foodItemId} className="group">
                   <td className="px-5 py-4">
                     <div className="text-xs font-bold text-stone-700">{move.foodName}</div>
