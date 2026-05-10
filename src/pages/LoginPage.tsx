@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useApp } from '../contexts/AppContext';
-import { LogIn, Sparkles } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const LoginPage: React.FC = () => {
@@ -18,14 +18,14 @@ export const LoginPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full bg-white rounded-[48px] p-10 shadow-xl border border-stone-100 text-center space-y-8"
       >
-        <div className="w-20 h-20 bg-natural-primary/10 rounded-3xl flex items-center justify-center mx-auto">
-          <Sparkles className="text-natural-primary" size={40} />
+        <div className="w-20 h-20 bg-natural-primary/10 rounded-3xl flex items-center justify-center mx-auto overflow-hidden">
+          <img src="/logo.png" alt="FlowFood" className="w-full h-full object-cover" />
         </div>
         
         <div className="space-y-3">
-          <h1 className="text-3xl font-serif text-stone-800">Семейный Холодильник</h1>
+          <h1 className="text-3xl font-serif text-stone-800 tracking-tight">FlowFood</h1>
           <p className="text-sm text-stone-400 leading-relaxed px-4">
-            Войдите, чтобы ваши данные синхронизировались между всеми устройствами семьи.
+            Дневник питания, БЖУ и ИИ-повар на каждый день.
           </p>
         </div>
 
@@ -46,9 +46,9 @@ export const LoginPage: React.FC = () => {
         </button>
 
         <div className="pt-4">
-          <p className="text-[10px] text-stone-300 font-bold uppercase tracking-widest leading-loose">
-            Дисциплина без унылой еды.<br/>
-            Синхронизация в облаке.
+          <p className="text-[10px] text-stone-400 font-black uppercase tracking-[0.2em] leading-loose">
+            Еда в балансе.<br/>
+            Без хаоса и унылой диеты.
           </p>
         </div>
       </motion.div>

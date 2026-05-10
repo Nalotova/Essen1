@@ -1,6 +1,6 @@
 {
-  "name": "Essen",
-  "short_name": "Essen",
+  "name": "FlowFood — дневник питания и ИИ-повар",
+  "short_name": "FlowFood",
   "description": "Эстетичный трекер питания, холодильника и рецептов для всей семьи.",
   "start_url": "/",
   "display": "standalone",

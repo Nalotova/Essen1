@@ -1,5 +1,5 @@
 {
-  "name": "Essen",
+  "name": "FlowFood",
   "description": "Эстетичный трекер питания, холодильника и рецептов для всей семьи.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": []
