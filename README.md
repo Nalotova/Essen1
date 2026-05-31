@@ -299,7 +299,6 @@ The AI chef should be treated as a meal-planning assistant, not medical or clini
 
 ## Roadmap
 
-- Rename the GitHub repository from `Essen1` to `FlowFood`
 - Add screenshots and a short product walkthrough
 - Add a demo mode with sample household, fridge, and cooking data
 - Add stronger tests for AI response validation and inventory write-off logic
